@@ -2,10 +2,14 @@ package com.imwj.tmall.service;
 
 import com.imwj.tmall.dao.CategoryDAO;
 import com.imwj.tmall.dao.ProductDAO;
+import com.imwj.tmall.es.ProductESDAO;
 import com.imwj.tmall.pojo.Category;
 import com.imwj.tmall.pojo.Product;
 import com.imwj.tmall.util.Page4Navigator;
 import com.imwj.tmall.util.SpringContextUtil;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -14,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -43,6 +49,9 @@ public class ProductService {
     @Autowired
     private ReviewService reviewService;
 
+    @Autowired
+    private ProductESDAO productESDAO;
+
     /**
      * 分页查询数据
      * @param start 起始页
@@ -66,6 +75,7 @@ public class ProductService {
      */
     @CacheEvict(allEntries=true)
     public Product add(Product product){
+        productESDAO.save(product);
         return productDAO.save(product);
     }
 
@@ -75,6 +85,7 @@ public class ProductService {
      */
     @CacheEvict(allEntries=true)
     public void delete(Integer id){
+        productESDAO.delete(id);
         productDAO.delete(id);
     }
 
@@ -95,6 +106,7 @@ public class ProductService {
      */
     @CacheEvict(allEntries=true)
     public Product update(Product product){
+        productESDAO.save(product);
         return productDAO.save(product);
     }
 
@@ -179,9 +191,37 @@ public class ProductService {
      * @return
      */
     public List<Product> searh(String keyword, int star, int size) {
-        Sort sort = new Sort(Sort.Direction.DESC, "id");
-        Pageable pageable = new PageRequest(star, size, sort);
-        List<Product> products = productDAO.findByNameLike("%" + keyword + "%", pageable);
-        return products;
+        initDatabase2ES();
+        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery()
+                .add(QueryBuilders.matchAllQuery(), //查询所有
+                        ScoreFunctionBuilders.weightFactorFunction(100))
+                //查询条件
+                .add(QueryBuilders.matchPhraseQuery("name", keyword),
+                        ScoreFunctionBuilders.weightFactorFunction(100))
+                //设置权重分 求和模式
+                .scoreMode("sum")
+                //设置权重分最低分
+                .setMinScore(10);
+        Sort sort  = new Sort(Sort.Direction.DESC,"id");
+        Pageable pageable = new PageRequest(star, size);
+        NativeSearchQuery build = new NativeSearchQueryBuilder()
+                .withPageable(pageable)
+                .withQuery(functionScoreQueryBuilder).build();
+        Page<Product> page = productESDAO.search(build);
+
+        return page.getContent();
+    }
+
+    /**
+     * 把数据初始化到elasticsearch中
+     */
+    private void initDatabase2ES(){
+        Pageable pageable = new PageRequest(0, 5);
+        Page<Product> page = productESDAO.findAll(pageable);
+        if(page.getContent().isEmpty()){
+            List<Product> products = productDAO.findAll();
+            for(Product p : products)
+                productESDAO.save(p);
+        }
     }
 }
