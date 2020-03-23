@@ -1,0 +1,33 @@
+server:
+  context-path: /tmall
+
+spring:
+  #数据源配置
+  datasource:
+    url: jdbc:mysql://123.56.104.175:3399/springboot?characterEncoding=UTF-8
+    username: root
+    password: java123
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+
+  #thymeleaf 配置
+  thymeleaf:
+    mode: LEGACYHTML5
+    encoding: UTF-8
+    servlet:
+      content-type: text/html
+    cache: false
+  http:
+    multipart:
+      max-file-size: 100Mb
+      max-request-size: 100Mb
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+

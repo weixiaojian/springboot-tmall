@@ -1,0 +1,770 @@
+# elasticsearch
+> Elasticsearch是一个开源的高扩展的分布式全文检索引擎，它可以近乎实时的存储、检索数据；本身扩展性很好，可以扩展到上百台服务器，处理PB级别的数据。  
+> Elasticsearch也使用Java开发并使用Lucene作为其核心来实现所有索引和搜索的功能，但是它的目的是通过简单的RESTful API来隐藏Lucene的复杂性，从而让全文搜索变得简单。
+
+## 安装
+* 1.下载地址：<a>https://www.elastic.co/cn/downloads/elasticsearch</a>，尽量使用JDK8以上版本
+* 2.解压缩elasticsearch文件 进入bin目录，点击elasticsearch.bat启动
+* 3.验证：浏览器打开<a>http://127.0.0.1:9200/</a>，显示json格式
+```
+{
+  "name" : "APh0VMI",
+  "cluster_name" : "elasticsearch",
+  "cluster_uuid" : "IvfX3iH1QRO-7TNTznxBTA",
+  "version" : {
+    "number" : "6.2.2",
+    "build_hash" : "10b1edd",
+    "build_date" : "2018-02-16T19:01:30.685723Z",
+    "build_snapshot" : false,
+    "lucene_version" : "7.2.1",
+    "minimum_wire_compatibility_version" : "5.6.0",
+    "minimum_index_compatibility_version" : "5.0.0"
+  },
+  "tagline" : "You Know, for Search"
+}
+```
+
+# Kibana 
+> Kibana 是为 Elasticsearch设计的开源分析和可视化平台,可以很方便地以Restful 风格向 ElasticSearch 服务器提交请求
+
+## 安装
+* 1.下载地址：https://www.elastic.co/cn/downloads/kibana 
+* 2.解压缩kibana-6.2.2文件 进入bin目录，点击kibana.bat启动
+* 3.验证：浏览器打开<a>http://localhost:5601/app/kibana#/dev_tools/console?_g=()</a>  
+* 4.进入Dev Tools菜单，控制台输入下面命令
+```
+GET /_cat/health?v
+```
+
+## Kibana索引
+* 1.Restful 风格
+```
+PUT 表示增加
+GET 表示获取
+DELETE 表示删除
+POST表示更新
+```
+
+* 2.索引管理
+```
+PUT /imwj?pretty  //增加一个索引名称为imwj
+
+GET /_cat/indices?v  //显示所有的索引
+
+DELETE /imwj?pretty  //删除指定索引
+```
+
+## 中文分词器
+* 1.下载地址：<a>https://github.com/medcl/elasticsearch-analysis-ik</a>
+* 2.复制压缩包到ElasticSearch解压目录下
+* 3.安装命令
+```
+D:\elasticsearch-6.2.2\bin\elasticsearch-plugin install file:\\\\D:\elasticsearch-6.2.2\elasticsearch-analysis-ik-6.2.2.zip
+```
+* 4.GitHub安装：
+```
+elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.2.2/elasticsearch-analysis-ik-6.2.2.zip
+```
+* 5.安装以后需要重启elasticsearch服务
+* 6.打开kibana控制台
+```
+http://localhost:5601/app/kibana#/dev_tools/console?_g=()
+```
+* 7.测试分词器
+```
+GET _analyze
+{
+  "analyzer":"ik_max_word",
+  "text":"喜欢一个人"
+}
+```
+
+## Kibana文档管理
+* 1.增加文档：其中的product在elasticsearch里是type的概念，相当于数据库里的表，这里就相当于向product表里插入了一条数据 id为1，pretty参数为：格式化返回json数据
+```
+PUT /imwj/product/1?pretty
+{
+  "name": "蜡烛"
+}
+```
+
+
+* 2.获取文档  
+_index 表示哪个索引  
+_type 表示哪个表  
+_id 主键  
+_version 版本  
+found 数据存在  
+_source: 数据内容  
+```
+GET /imwj/product/1?pretty
+```
+
+
+* 3.修改文档：修改会改变版本
+```
+PUT /imwj/product/1?pretty
+{
+  "name": "红色蜡烛"
+}
+或
+POST /imwj/product/1/_update?pretty
+{
+  "doc": { "name": "蓝色蜡烛" }
+}
+```
+
+* 4.删除文档：found:false就表示没有找到该数据了
+```
+DELETE /imwj/product/1?pretty
+```
+
+## Kibana批量导入
+使用这种方式能够插入的上限较小，通过curl.exe来插入则比较快  
+* 1.批量导入命令
+```
+POST _bulk
+{"index":{"_index":"imwj","_type":"product","_id":10001}}
+{"code":"540785126782","price":398,"name":"房屋卫士自流平美缝剂瓷砖地砖专用双组份真瓷胶防水填缝剂镏金色","place":"上海","category":"品质建材"}
+{"index":{"_index":"imwj","_type":"product","_id":10002}}
+{"code":"24727352473","price":21.799999237060547,"name":"艾瑞泽手工大号小号调温热熔胶枪玻璃胶枪硅胶条热溶胶棒20W-100W","place":"山东青岛","category":"品质建材"}
+{"index":{"_index":"imwj","_type":"product","_id":10003}}
+```
+
+* 2.查询所有文档
+```
+GET /imwj/_search
+{
+  "query":{"match_all":{}}
+}
+```
+
+## Kibana使用curl.exe批量导入  
+* 1.curl是一个工具，可以模拟浏览器向服务器提交数据，下载地址<a>https://curl.haxx.se/download.html</a>
+* 2.把json文件和curl.exe放在同一目录下
+```
+curl -H "Content-Type: application/json" -XPOST "localhost:9200/imwj/product/_bulk?refresh" --data-binary "@products.json"
+```
+* 3.导入成功后 查询操作，total表示总条数
+```
+GET /imwj/_search
+{
+    "query": { "match_all": {} }
+}
+```
+
+## Kibana查询语句
+* 1.查询所有：total表示一共有多少条数据，默认查询显示10条数据
+```
+GET /imwj/_search
+{
+  "query":{"match_all":{}}
+}
+```
+
+* 2.查询排序：id倒排序
+```
+GET /imwj/_search
+{
+  "query":{"match_all": {}},
+  "sort": [
+    { "_id":"desc"}
+  ]
+}
+```
+
+* 3.只返回部分字段
+```
+GET /imwj/_search
+{
+  "query": {"match_all": {}},
+  "_source": ["name", "price"]
+}
+```
+
+* 4.条件查询
+```
+GET /imwj/_search
+{
+  "query":{"match":{"name":"时尚连衣裙"}}
+}
+```
+
+* 5.分页查询  
+from：起始位置
+size：总条数
+sort：排序
+```
+GET /imwj/_search
+{
+  "query":{"match_all": {}},
+  "from": 1,
+  "size": 3,
+  "sort": {"_id":{"order":"desc"}}
+}
+```
+
+## Kibana聚合  
+第一个size:0表示 不用显示每条数据，第二个size:3表示分组数据显示3条  
+相当于sql语句：select count(*),place from product group by place limit 0,3  
+```
+GET /imwj/_search
+{
+  "size": 0,
+  "aggs": {
+    "group_by_place":{
+      "terms":{
+        "field": "place.keyword",
+        "size": 100
+      }
+    }
+  }
+}
+```
+
+# elasticsearch的java api
+## 索引操作
+```
+import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+
+import java.io.IOException;
+
+public class TestElasticSearch4J {
+	/**
+	 * 连接elasticsearch库
+	 */
+	private static RestHighLevelClient client = new RestHighLevelClient(
+	        RestClient.builder(
+	                new HttpHost("localhost", 9200, "http")
+	        ));
+	
+	public static void main(String[] args) throws IOException {
+		String indexName = "imwj";
+		
+		if(!checkExistIndex(indexName)){
+			createIndex(indexName);			
+		}
+		if(checkExistIndex(indexName)){
+			deleteIndex(indexName);
+		}
+		checkExistIndex(indexName);
+		client.close();
+	}
+
+	/**
+	 * 校验索引是否存在
+	 * @param indexName
+	 * @return
+	 * @throws IOException
+	 */
+	private static boolean checkExistIndex(String indexName) throws IOException {
+		boolean result =true;
+		try {
+	        OpenIndexRequest openIndexRequest = new OpenIndexRequest(indexName);
+	        client.indices().open(openIndexRequest).isAcknowledged();
+
+	    } catch (ElasticsearchStatusException ex) {
+	        //只能通过异常来判断索引是否存在
+	        String m = "Elasticsearch exception [type=index_not_found_exception, reason=no such index]";
+	        if (m.equals(ex.getMessage())) {
+	        	result = false;
+	        }
+	    }
+		if(result)
+			System.out.println("索引:" +indexName + " 是存在的");
+		else
+			System.out.println("索引:" +indexName + " 不存在");
+		
+		return result;
+		
+	}
+
+	/**
+	 * 删除索引
+	 * @param indexName
+	 * @throws IOException
+	 */
+	private static void deleteIndex(String indexName) throws IOException {
+		DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+		client.indices().delete(request);
+		System.out.println("删除了索引："+indexName);
+
+		
+	}
+
+	/**
+	 * 创建索引
+	 * @param indexName
+	 * @throws IOException
+	 */
+	private static void createIndex(String indexName) throws IOException {
+		CreateIndexRequest request = new CreateIndexRequest(indexName);
+		client.indices().create(request);
+		System.out.println("创建了索引："+indexName);
+	}
+     
+}
+```
+
+## 文档操作
+```
+import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+
+import java.io.IOException;
+import java.util.HashMap;
+
+public class TestElasticSearch4J {
+	private static RestHighLevelClient client = new RestHighLevelClient(
+			RestClient.builder(
+					new HttpHost("localhost", 9200, "http")
+			));
+
+	private static String indexName = "imwj";
+
+	public static void main(String[] args)throws IOException {
+//确保索引存在
+		if(!checkExistIndex(indexName)){
+			createIndex(indexName);
+		}
+		//准备数据
+		Product product = new Product();
+		product.setId(1);
+		product.setName("product 1");
+
+		//增加文档
+		addDocument(product);
+		//获取文档
+		getDocument(1);
+		//修改数据
+		product.setName("product 2");
+		//修改文档
+		updateDocument(product);
+		//获取文档
+		getDocument(1);
+		//删除文档
+		deleteDocument(1);
+		//获取文档
+		getDocument(1);
+
+		client.close();
+	}
+
+	/**
+	 * 添加文档
+	 * @param product
+	 * @throws IOException
+	 */
+	public static void addDocument(Product product)throws IOException{
+		HashMap<String, Object> jsonMap = new HashMap<>();
+		jsonMap.put("name", product.getName());
+		IndexRequest indexRequest = new IndexRequest(indexName, "product", String.valueOf(product.getId())).source(jsonMap);
+		client.index(indexRequest);
+		System.out.println("已经向ElasticSearch服务器增加产品："+product);
+	}
+
+	/**
+	 * 删除文档
+	 * @param id
+	 * @throws IOException
+	 */
+	private static void deleteDocument(int id)throws IOException{
+		DeleteRequest deleteRequest = new DeleteRequest(indexName, "product", String.valueOf(id));
+		client.delete(deleteRequest);
+		System.out.println("已经从ElasticSearch服务器上删除id="+id+"的文档");
+	}
+
+	/**
+	 * 更新文档
+	 * @param product
+	 * @throws IOException
+	 */
+	private static void updateDocument(Product product)throws IOException{
+		UpdateRequest updateRequest = new UpdateRequest(indexName, "product", String.valueOf(product.getId()))
+				.doc("name", product.getName());
+		client.update(updateRequest);
+		System.out.println("已经在ElasticSearch服务器上修改："+product);
+	}
+
+	/**
+	 * 获取文档
+	 * @param id
+	 * @throws IOException
+	 */
+	private static void getDocument(int id)throws IOException{
+		GetRequest getRequest = new GetRequest(indexName, "product", String.valueOf(id));
+		GetResponse response = client.get(getRequest);
+		if(!response.isExists()){
+			System.out.println("检查到服务器上 "+"id="+id+ "的文档不存在");
+		}else {
+			String source = response.getSourceAsString();
+			System.out.print("获取到服务器上 "+"id="+id+ "的文档内容是：");
+			System.out.println(source);
+		}
+	}
+
+	/**
+	 * 校验索引是否存在
+	 * @param indexName
+	 * @return
+	 * @throws IOException
+	 */
+	private static boolean checkExistIndex(String indexName)throws IOException{
+		boolean result = true;
+		try {
+			OpenIndexRequest openIndexRequest = new OpenIndexRequest(indexName);
+			client.indices().open(openIndexRequest).isShardsAcknowledged();
+		}catch (ElasticsearchStatusException ex){
+			//只能通过异常来判断索引是否存在
+			String m = "Elasticsearch exception [type=index_not_found_exception, reason=no such index]";
+			if (m.equals(ex.getMessage())) {
+				result = false;
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * 创建索引
+	 * @param indexName
+	 * @throws IOException
+	 */
+	private static void createIndex(String indexName)throws IOException{
+		CreateIndexRequest request = new CreateIndexRequest(indexName);
+		client.indices().create(request);
+		System.out.println("创建了索引："+indexName);
+	}
+
+	/**
+	 * 删除索引
+	 * @param indexName
+	 * @throws IOException
+	 */
+	private static void deleteIndex(String indexName)throws IOException{
+		DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+		client.indices().delete(request);
+		System.out.println("删除了索引："+indexName);
+	}
+}
+```
+
+## 批量插入数据
+```
+import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class TestElasticSearch4J {
+	private static RestHighLevelClient client = new RestHighLevelClient(
+	        RestClient.builder(
+	                new HttpHost("localhost", 9200, "http")
+	        ));
+	private static String indexName = "imwj";
+	
+	public static void main(String[] args) throws IOException {
+		//确保索引存在
+		if(!checkExistIndex(indexName)){
+			createIndex(indexName);			
+		}
+		//14万准备数据
+		List<Product> products = ProductUtil.file2list("140k_products.txt");
+		System.out.println("准备数据，总计"+products.size()+"条");
+		batchInsert(products);
+		client.close();
+	}
+
+	/**
+	 * 批量插入一个list集合
+	 * @param products
+	 * @throws IOException
+	 */
+	private static void batchInsert(List<Product> products) throws IOException {
+		BulkRequest request = new BulkRequest();
+		
+		for (Product product : products) {
+			Map<String,Object> m  = product.toMap();
+			IndexRequest indexRequest= new IndexRequest(indexName, "product", String.valueOf(product.getId())).source(m);
+			request.add(indexRequest);
+		}
+		
+		client.bulk(request);
+		System.out.println("批量插入完成");
+	}
+}
+```
+
+## 文档查询操作
+```
+import org.apache.http.HttpHost;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.ScoreSortBuilder;
+import org.elasticsearch.search.sort.SortOrder;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class TestElasticSearch4J {
+	private static RestHighLevelClient client = new RestHighLevelClient(
+	        RestClient.builder(
+	                new HttpHost("localhost", 9200, "http")
+	        ));
+	private static String indexName = "imwj";
+	
+	public static void main(String[] args) throws IOException {
+		String keyword = "时尚连衣裙";
+		int start = 0;
+		int count = 10;
+		
+		SearchHits hits = search(keyword, start, count);
+		SearchHit[] searchHits = hits.getHits();
+		for (SearchHit hit : searchHits) {
+			System.out.println(hit.getSourceAsString());
+		}
+		client.close();
+	}
+
+	/**
+	 * 查询操作：根据关键字分页查询
+	 * @param keyword
+	 * @param start
+	 * @param count
+	 * @return
+	 * @throws IOException
+	 */
+	private static SearchHits search(String keyword, int start, int count) throws IOException {
+		SearchRequest searchRequest = new SearchRequest(indexName); 
+		SearchSourceBuilder sourceBuilder = new SearchSourceBuilder(); 
+		//关键字匹配
+		MatchQueryBuilder matchQueryBuilder = new MatchQueryBuilder("name",keyword ); 
+		//模糊匹配
+		matchQueryBuilder.fuzziness(Fuzziness.AUTO);
+		sourceBuilder.query(matchQueryBuilder); 
+		//第几页
+		sourceBuilder.from(start); 
+		//第几条
+		sourceBuilder.size(count); 
+		searchRequest.source(sourceBuilder);
+		//匹配度从高到低
+		sourceBuilder.sort(new ScoreSortBuilder().order(SortOrder.DESC));
+		SearchResponse searchResponse = client.search(searchRequest);
+		SearchHits hits = searchResponse.getHits();
+		return hits;
+	}
+}
+```
+
+# springboot中操作
+## pom文件引入依赖
+```
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+        </dependency>
+```
+
+## yml配置
+```
+spring:
+  mvc:
+    view:
+      prefix: /WEB-INF/jsp/
+      suffix: .jsp
+  data:
+    cluster-name: docker-cluster
+    cluster-nodes: localhost:9300
+
+server:
+  port: 8080
+```
+
+## 新建实体类
+```
+import lombok.Data;
+import org.springframework.data.elasticsearch.annotations.Document;
+
+/**
+ * @author langao_q
+ * @create 2020-03-17 11:35
+ */
+@Data
+@Document(indexName = "imwj", type = "category")
+public class Category {
+
+    private int id;
+    private String name;
+
+}
+```
+
+## 新建dao操作类
+直接继承ElasticsearchRepository<Category, Integer>即可
+```
+import io.imwj.elasticsearch.pojo.Category;
+import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
+
+/**
+ * @author langao_q
+ * @create 2020-03-17 11:37
+ */
+public interface CategoryDAO extends ElasticsearchRepository<Category, Integer> {
+}
+```
+
+## controller控制类
+```
+import io.imwj.elasticsearch.dao.CategoryDAO;
+import io.imwj.elasticsearch.pojo.Category;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.SearchQuery;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * @author langao_q
+ * @create 2020-03-17 11:38
+ */
+@Controller
+public class CategoryController {
+
+    @Autowired
+    CategoryDAO categoryDAO;
+
+    @ResponseBody
+    @GetMapping("/list")
+    public Page<Category> list(@RequestParam(value = "start", defaultValue = "0")int start, @RequestParam(value =
+            "size", defaultValue = "5")int size, @RequestParam(value = "name", required = false)String name){
+        SearchQuery searchQuery=getEntitySearchQuery(start,size,name);
+        Page<Category> page = categoryDAO.search(searchQuery);
+        return page;
+    }
+
+    @GetMapping("/listCategory")
+    public String listCategory(Model m,@RequestParam(value = "start", defaultValue = "0") int start,@RequestParam(value = "size", defaultValue = "5") int size){
+        String query = "商品"; //查询条件，但是并未使用，放在这里，为的是将来使用，方便参考，知道如何用
+        SearchQuery searchQuery=getEntitySearchQuery(start,size,query);
+        Page<Category> page = categoryDAO.search(searchQuery);
+        m.addAttribute("page", page);
+        return "listCategory";
+    }
+
+    private SearchQuery getEntitySearchQuery(int start, int size, String name) {
+        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery()
+                .add(QueryBuilders.matchAllQuery(), //查询所有
+                        ScoreFunctionBuilders.weightFactorFunction(100))
+               //查询条件
+                .add(QueryBuilders.matchPhraseQuery("name", name),
+                      ScoreFunctionBuilders.weightFactorFunction(100))
+                //设置权重分 求和模式
+                .scoreMode("sum")
+                //设置权重分最低分
+                .setMinScore(10);
+
+        // 设置分页
+        Sort sort  = new Sort(Sort.Direction.DESC,"id");
+        Pageable pageable = new PageRequest(start, size,sort);
+        return new NativeSearchQueryBuilder()
+                .withPageable(pageable)
+                .withQuery(functionScoreQueryBuilder).build();
+    }
+
+    @RequestMapping("/addCategory")
+    public String addCategory(Category c)throws Exception{
+        int id = currenTime();
+        c.setId(id);
+        categoryDAO.save(c);
+        return "redirect:listCategory";
+    }
+
+    private int currenTime(){
+        SimpleDateFormat sdf = new SimpleDateFormat("MMddHHmmss");
+        String format = sdf.format(new Date());
+        return Integer.parseInt(format);
+    }
+
+    @RequestMapping("/deleteCategory")
+    public String deleteCategory(Category c){
+        categoryDAO.delete(c);
+        return "redirect:listCategory";
+    }
+
+    @RequestMapping("/updateCategory")
+    public String updateCategory(Category c){
+        categoryDAO.save(c);
+        return "redirect:listCategory";
+    }
+
+    @RequestMapping("/editCategory")
+    public String editCategory(int id, Model m){
+        Category category = categoryDAO.findOne(id);
+        m.addAttribute("c", category);
+        return "editCategory";
+    }
+}
+```
+
