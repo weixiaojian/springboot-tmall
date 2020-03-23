@@ -4,6 +4,7 @@ import com.imwj.tmall.dao.ProductImageDAO;
 import com.imwj.tmall.pojo.OrderItem;
 import com.imwj.tmall.pojo.Product;
 import com.imwj.tmall.pojo.ProductImage;
+import com.imwj.tmall.util.SpringContextUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
@@ -84,7 +85,8 @@ public class ProductImageService {
      * @param product
      */
     public void setFirstProdutImage(Product product) {
-        List<ProductImage> singleImages = listSingleProductImages(product);
+        ProductImageService productImageService = SpringContextUtil.getBean(ProductImageService.class);
+        List<ProductImage> singleImages = productImageService.listSingleProductImages(product);
         if(!singleImages.isEmpty())
             product.setFirstProductImage(singleImages.get(0));
         else
