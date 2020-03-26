@@ -1,5 +1,9 @@
 package com.imwj.tmall;
 
+import cn.hutool.core.lang.Console;
+import cn.hutool.log.Log;
+import cn.hutool.log.LogFactory;
+import cn.hutool.log.dialect.commons.ApacheCommonsLogFactory;
 import com.imwj.tmall.util.PortUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +22,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class Application {
 
     static {
+
         PortUtil.checkPort(6379,"Redis 服务端",true);
 
         PortUtil.checkPort(9300,"ElasticSearch 服务端",true);

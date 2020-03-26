@@ -1,5 +1,6 @@
 server:
-  context-path: /tmall
+  context-path: /
+  port: 8888
 
 spring:
   #数据源配置

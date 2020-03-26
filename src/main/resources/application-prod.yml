@@ -1,10 +1,11 @@
 server:
-  context-path: /tmall
+  context-path: /
+  port: 8888
 
 spring:
   #数据源配置
   datasource:
-    url: jdbc:mysql://123.56.104.175:3399/springboot?characterEncoding=UTF-8
+    url: jdbc:mysql://127.0.0.1:3399/springboot?characterEncoding=UTF-8
     username: root
     password: java123
     driver-class-name: com.mysql.jdbc.Driver
@@ -26,4 +27,12 @@ spring:
     multipart:
       max-file-size: 100Mb
       max-request-size: 100Mb
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+
+  data:
+    elasticsearch:
+      cluster-nodes: 127.0.0.1:9300
 
