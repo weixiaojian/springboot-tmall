@@ -5,9 +5,9 @@ server:
 spring:
   #数据源配置
   datasource:
-    url: jdbc:mysql://123.56.104.175:3399/springboot?characterEncoding=UTF-8
-    username: root
-    password: java123
+    url: jdbc:mysql://127.0.0.1:3399/springboot?characterEncoding=UTF-8
+    username: admin
+    password: admin
     driver-class-name: com.mysql.jdbc.Driver
   jpa:
     hibernate:
